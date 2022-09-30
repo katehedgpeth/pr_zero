@@ -10,6 +10,7 @@ import Config
 # Configures the endpoint
 config :pr_zero, PrZeroWeb.Endpoint,
   url: [host: "localhost"],
+  accepts: ~w(json),
   render_errors: [view: PrZeroWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: PrZero.PubSub,
   live_view: [signing_salt: "MyjagtHB"]
