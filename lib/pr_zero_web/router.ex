@@ -18,13 +18,8 @@ defmodule PrZeroWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
-  end
-
-  scope "/api", PrZeroWeb do
-    pipe_through :api
-
-    post "/login", AuthController, :create
-    post "/logout", AuthController, :delete
+    get "/auth", AuthController, :index
+    get "/auth/authorized", AuthController, :create
   end
 
   # Other scopes may use custom stacks.

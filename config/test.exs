@@ -8,11 +8,12 @@ config :pr_zero, PrZeroWeb.Endpoint,
   server: false
 
 # In test we don't send emails.
-config :pr_zero, PrZero.Mailer,
-  adapter: Swoosh.Adapters.Test
+config :pr_zero, PrZero.Mailer, adapter: Swoosh.Adapters.Test
 
 # Print only warnings and errors during test
 config :logger, level: :warn
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+import_config "test.secret.exs"

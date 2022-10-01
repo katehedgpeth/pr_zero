@@ -1,38 +1,46 @@
 defmodule PrZero.GithubTest do
   use ExUnit.Case
   alias PrZero.Github
+  alias PrZero.Github.Auth
+
+  @mock_access_token "MOCK_ACCESS_TOKEN_1234567"
 
   describe "auth" do
-    alias PrZero.Github.Auth
-
-    import PrZero.GithubFixtures
-
-    @invalid_attrs %{}
-
-    test "list_auth/0 returns all auth" do
-      auth = auth_fixture()
-      assert Github.list_auth() == [auth]
+    setup do
+      bypass = Bypass.open()
+      TestHelpers.set_github_host(bypass)
+      {:ok, bypass: bypass}
     end
 
-    test "get_auth!/1 returns the auth with given id" do
-      auth = auth_fixture()
-      assert Github.get_auth!(auth.user_id) == auth
+    test "get_access_token/1 calls Github and returns an access token", %{bypass: bypass} do
+      TestHelpers.bypass_access_token_success(bypass, %{
+        code: "CODE_FROM_GITHUB",
+        access_token: @mock_access_token
+      })
+
+      assert {:ok, %Auth{token: @mock_access_token}} =
+               Github.get_access_token(code: "CODE_FROM_GITHUB", cookie: "COOKIE")
     end
 
-    test "create_auth/1 with valid data creates a auth" do
-      valid_attrs = %{}
+    test "get_access_token/1 returns error tuple if verification code is denied",
+         %{bypass: bypass} do
+      TestHelpers.bypass_access_token_bad_code(bypass)
 
-      assert {:ok, %Auth{} = auth} = Github.create_auth(valid_attrs)
+      assert Github.get_access_token(code: "BAD_CODE", cookie: "COOKIE") ==
+               {:error, {:bad_verification_code, "BAD_CODE"}}
     end
 
-    test "create_auth/1 with invalid data returns error changeset" do
-      assert {:error, %{}} = Github.create_auth(@invalid_attrs)
+    test "get_access_token/1 returns error tuple if service is down", %{bypass: bypass} do
+      Bypass.down(bypass)
+
+      assert Github.get_access_token(code: "CODE_FROM_GITHUB", cookie: "COOKIE") ==
+               {:error, %HTTPoison.Error{reason: :econnrefused}}
+
+      Bypass.up(bypass)
     end
 
-    test "delete_auth/1 deletes the auth" do
-      auth = auth_fixture()
-      assert {:ok, %Auth{}} = Github.delete_auth(auth)
-      assert_raise :no_results, fn -> Github.get_auth!(auth.user_id) end
+    test "base_uri/0 returns the base_uri", %{bypass: %Bypass{port: port}} do
+      assert Github.base_uri() == %URI{scheme: "http", host: "localhost", port: port}
     end
   end
 end

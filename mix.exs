@@ -46,7 +46,8 @@ defmodule PrZero.MixProject do
       {:gettext, "~> 0.18"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:tentacat, "~> 2.2.0"}
+      {:bypass, "~> 2.1.0"},
+      {:httpoison, "~> 1.8.2"}
     ]
   end
 
