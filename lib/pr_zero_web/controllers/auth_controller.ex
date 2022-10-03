@@ -6,15 +6,17 @@ defmodule PrZeroWeb.AuthController do
 
   alias PrZero.Github
   alias PrZero.Github.Auth
+  alias PrZeroWeb.ConnHelpers
 
   action_fallback PrZeroWeb.FallbackController
 
   def index(conn, %{}) do
-    csrf = Plug.CSRFProtection.get_csrf_token()
-
-    url = github_oauthorize_url(conn, csrf)
-
-    redirect(conn, external: url)
+    redirect(conn,
+      external:
+        conn
+        |> assign(:redirect_url, Routes.auth_url(conn, :create))
+        |> Auth.oauthorize_url()
+    )
   end
 
   def create(%Conn{} = conn, %{"code" => code, "state" => csrf_token}) do
@@ -38,30 +40,13 @@ defmodule PrZeroWeb.AuthController do
     render_error(conn, %{status: :not_implemented, message: "Not Implemented"})
   end
 
-  def github_oauthorize_url(%Conn{} = conn, "" <> csrf) do
-    Github.base_uri()
-    |> URI.merge(%URI{
-      path: "/login/oauth/authorize",
-      query:
-        URI.encode_query(%{
-          client_id: Github.client_id(),
-          redirect_url: Routes.auth_url(conn, :create),
-          scope: "notifications",
-          state: csrf
-        })
-    })
-    |> URI.to_string()
-  end
-
-  def get_csrf_token(%Conn{private: %{:plug_session => %{"_csrf_token" => csrf_token}}}),
-    do: csrf_token
-
   defp verify_csrf(conn, csrf) do
     conn
-    |> get_csrf_token()
+    |> ConnHelpers.get_csrf_token()
     |> case do
-      ^csrf -> :ok
-      mismatch -> {:error, {:mismatch, expected: csrf, received: mismatch}}
+      {:ok, {^csrf, %Conn{}}} -> :ok
+      {:ok, {mismatch, %Conn{}}} -> {:error, {:mismatch, expected: csrf, received: mismatch}}
+      :error -> {:error, :not_set}
     end
   end
 
@@ -80,7 +65,7 @@ defmodule PrZeroWeb.AuthController do
   end
 
   defp do_create(%Conn{} = conn, %{code: code}) do
-    case Github.get_access_token(
+    case Github.Auth.get_access_token(
            code: code,
            cookie: get_cookie_for_token(conn)
          ) do

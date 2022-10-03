@@ -2,29 +2,48 @@ defmodule TestHelpers do
   alias PrZero.Github
   alias Plug.Conn
 
-  @spec set_github_host(Bypass.t() | URI.t()) :: :ok
-  def set_github_host(%Bypass{port: port}) do
-    set_github_host(%URI{
-      scheme: "http",
-      host: "localhost",
-      port: port
-    })
-  end
+  @spec set_github_host(Bypass.t() | URI.t() | :github) :: :ok
+  def set_github_host(config), do: set_github_host(config, :base_api_url)
 
-  def set_github_host(%URI{} = uri) do
-    Application.put_env(
-      :pr_zero,
-      Github,
-      Keyword.update!(Github.env(), :base_url, fn _ -> URI.to_string(uri) end)
-    )
-  end
+  @spec set_github_host(Bypass.t() | URI.t() | :github, :base_api_url | :base_auth_url) :: :ok
+  def set_github_host(%Bypass{port: port}, key),
+    do:
+      set_github_host(
+        %URI{
+          scheme: "http",
+          host: "localhost",
+          port: port
+        },
+        key
+      )
 
-  def set_github_host(:github) do
-    set_github_host(%URI{
-      scheme: "https",
-      host: "github.com"
-    })
-  end
+  def set_github_host(:github, :base_auth_url),
+    do:
+      set_github_host(
+        %URI{
+          scheme: "https",
+          host: "github.com"
+        },
+        :base_auth_url
+      )
+
+  def set_github_host(:github, :base_api_url),
+    do:
+      set_github_host(
+        %URI{
+          scheme: "https",
+          host: "api.github.com"
+        },
+        :base_api_url
+      )
+
+  def set_github_host(%URI{} = uri, key) when key in [:base_api_url, :base_auth_url],
+    do:
+      Application.put_env(
+        :pr_zero,
+        Github,
+        Keyword.update!(Github.env(), key, fn _ -> URI.to_string(uri) end)
+      )
 
   @type incorrect_github_domain() :: {:error, {:incorrect_domain, URI.t(), integer() | nil}}
   @type assert_github_url_return() ::
@@ -44,11 +63,15 @@ defmodule TestHelpers do
     do_assert_github_url(uri)
   end
 
-  def assert_github_url(%URI{} = error, %Bypass{port: port}, cb) when is_function(cb) do
-    {:error, {:incorrect_domain, error, port}}
+  def assert_github_url(%URI{} = error, %Bypass{} = bypass, cb) when is_function(cb) do
+    {:error, {:incorrect_domain, error, bypass}}
   end
 
   def assert_github_url(%URI{scheme: "https", host: "github.com", port: 443} = uri) do
+    do_assert_github_url(uri)
+  end
+
+  def assert_github_url(%URI{scheme: "https", host: "api.github.com", port: 443} = uri) do
     do_assert_github_url(uri)
   end
 
@@ -122,7 +145,7 @@ defmodule TestHelpers do
     Bypass.expect_once(
       bypass,
       "POST",
-      Github.access_token_endpoint(),
+      Github.Auth.access_token_endpoint(),
       fn %Conn{body_params: %Conn.Unfetched{}} = conn ->
         {:ok, body, conn} = Conn.read_body(conn)
 

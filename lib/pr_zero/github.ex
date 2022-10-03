@@ -3,17 +3,10 @@ defmodule PrZero.Github do
   The Github context.
   """
 
-  alias __MODULE__.Auth
-
-  @access_token_endpoint "/login/oauth/access_token"
-
-  @type access_token() :: Auth.token()
-  @type code() :: String.t()
-
   @spec env :: [
           {:client_id, String.t()},
           {:client_secret, String.t()},
-          {:base_url, String.t()}
+          {:base_api_url, String.t()}
         ]
   def env, do: Application.get_env(:pr_zero, __MODULE__)
 
@@ -21,7 +14,7 @@ defmodule PrZero.Github do
   def client_id, do: Keyword.fetch!(env(), :client_id)
 
   @spec base_url :: String.t()
-  def base_url, do: Keyword.fetch!(env(), :base_url)
+  def base_url, do: Keyword.fetch!(env(), :base_api_url)
 
   @spec base_uri :: URI.t()
   def base_uri do
@@ -29,54 +22,59 @@ defmodule PrZero.Github do
     |> URI.new!()
   end
 
-  @spec access_token_endpoint :: String.t()
-  def access_token_endpoint, do: @access_token_endpoint
+  @type parsed_response() ::
+          {:ok, Map.t()} | {:error, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
 
-  @spec get_access_token([{:code, any} | {:cookie, any}]) ::
-          {:error, HTTPoison.Error.t()} | {:ok, Auth.t()}
-  def get_access_token(code: code, cookie: cookie) do
-    base_url()
-    |> Kernel.<>(@access_token_endpoint)
-    |> HTTPoison.post(
-      build_access_token_body(code: code),
-      [{"Accept", "application/json"}, {"content-type", "application/json"}],
-      hackney: [cookie: [cookie]]
-    )
-    |> parse_token_response(code)
+  @spec get(URI.t()) :: parsed_response()
+  @spec get(URI.t(), Map.t()) :: parsed_response()
+  def get(%URI{} = endpoint), do: get(endpoint, %{})
+
+  def get(%URI{} = endpoint, %{} = header_map) do
+    endpoint
+    |> build_url()
+    |> HTTPoison.get(headers(header_map))
+    |> parse_github_response()
   end
 
-  @spec build_access_token_body([{:code, String.t()}]) :: String.t()
-  defp build_access_token_body(code: code),
-    do:
-      env()
-      |> Keyword.take([:client_id, :client_secret])
-      |> Keyword.merge(code: code)
-      |> Enum.into(%{})
-      |> Jason.encode!()
+  @spec post(URI.t(), String.t()) :: parsed_response()
+  @spec post(URI.t(), String.t(), Map.t()) :: parsed_response()
+  def post(%URI{} = endpoint, "" <> body), do: post(endpoint, body, %{})
 
-  @spec parse_token_response(
-          {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()},
-          String.t()
-        ) ::
-          {:ok, Auth.t()}
-          | {:error, {:bad_verification_code, code()}}
-          | {:error, {:unexpected_body, Map.t()}}
-          | {:error, HTTPoison.Error.t()}
-          | {:error, HTTPoison.Response.t()}
-          | {:error, any()}
-  defp parse_token_response({:ok, %HTTPoison.Response{status_code: 200, body: body}}, code) do
-    body
-    |> Jason.decode()
-    |> case do
-      {:ok, %{"access_token" => token}} -> {:ok, %Auth{token: token}}
-      {:ok, %{"error" => "bad_verification_code"}} -> {:error, {:bad_verification_code, code}}
-      {:ok, unexpected_body} -> {:error, {:unexpected_body, unexpected_body}}
-      error -> error
-    end
+  def post(%URI{} = endpoint, "" <> body, %{} = header_map) do
+    endpoint
+    |> build_url()
+    |> HTTPoison.post(body, headers(header_map))
+    |> parse_github_response()
   end
 
-  defp parse_token_response({:ok, %HTTPoison.Response{} = bad_response}, _),
-    do: {:error, bad_response}
+  defp build_url(%URI{} = uri) do
+    base_uri()
+    |> URI.merge(uri)
+    |> URI.to_string()
+  end
 
-  defp parse_token_response({:error, %HTTPoison.Error{} = error}, _), do: {:error, error}
+  defp headers(%{token: _} = headers) do
+    {token, rest} = Map.pop!(headers, :token)
+    [{"Authorization", "Bearer " <> token} | headers(rest)]
+  end
+
+  defp headers(%{cookie: _} = headers) do
+    {cookie, rest} = Map.pop!(headers, :cookie)
+    [{"Cookie", cookie} | headers(rest)]
+  end
+
+  defp headers(%{}) do
+    [{"Accept", "application/json"}]
+  end
+
+  @spec parse_github_response({:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}) ::
+          parsed_response()
+  defp parse_github_response({:ok, %HTTPoison.Response{status_code: 200, body: body}}),
+    do: Jason.decode(body)
+
+  defp parse_github_response({:ok, %HTTPoison.Response{} = response}),
+    do: {:error, response}
+
+  defp parse_github_response(error),
+    do: error
 end

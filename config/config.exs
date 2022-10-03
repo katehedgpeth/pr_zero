@@ -45,7 +45,9 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config(:pr_zero, PrZero.Github, base_url: "https://github.com")
+config :pr_zero, PrZero.Github,
+  base_api_url: "https://api.github.com",
+  base_auth_url: "https://github.com"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

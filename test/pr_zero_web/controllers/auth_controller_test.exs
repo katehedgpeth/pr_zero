@@ -1,21 +1,30 @@
 defmodule PrZeroWeb.AuthControllerTest do
   use PrZeroWeb.ConnCase
+  alias Plug.Conn
   alias ExUnit.CaptureLog
   alias PrZero.Github
+  alias Github.Auth
+  alias PrZeroWeb.ConnHelpers
 
-  defp setup_with_bypass_and_csrf(%Plug.Conn{} = conn) do
+  defp pass_through_homepage(%Conn{} = conn) do
+    get(conn, Routes.page_path(conn, :index))
+  end
+
+  defp setup_with_bypass_and_csrf(%Conn{} = conn) do
     bypass = Bypass.open()
-    TestHelpers.set_github_host(bypass)
-    conn = get(conn, Routes.page_path(conn, :index))
+    TestHelpers.set_github_host(bypass, :base_auth_url)
+    conn = pass_through_homepage(conn)
     {:ok, bypass: bypass, conn: conn}
   end
 
   describe "auth_path :index" do
     test "redirects to github", %{conn: conn} do
-      TestHelpers.set_github_host(%URI{
-        scheme: "https",
-        host: "github.com"
-      })
+      TestHelpers.set_github_host(
+        :github,
+        :base_auth_url
+      )
+
+      conn = pass_through_homepage(conn)
 
       assert %{status: 302, resp_headers: headers} = get(conn, Routes.auth_path(conn, :index))
 
@@ -26,24 +35,12 @@ defmodule PrZeroWeb.AuthControllerTest do
     end
   end
 
-  describe "github_oauthorize_url" do
-    setup %{conn: conn} do
-      setup_with_bypass_and_csrf(conn)
-    end
-
-    test "returns the expected URL as a string", %{bypass: bypass, conn: conn} do
-      assert {:ok, %URI{host: "localhost"}} =
-               conn
-               |> PrZeroWeb.AuthController.github_oauthorize_url("CSRF123456")
-               |> URI.parse()
-               |> TestHelpers.assert_github_url(bypass)
-    end
-  end
-
   def auth_create_path_with_params(conn, code) do
+    {:ok, {csrf, conn}} = ConnHelpers.get_csrf_token(conn)
+
     Routes.auth_path(conn, :create,
       code: code,
-      state: PrZeroWeb.AuthController.get_csrf_token(conn)
+      state: csrf
     )
   end
 
@@ -107,7 +104,7 @@ defmodule PrZeroWeb.AuthControllerTest do
       Bypass.expect_once(
         bypass,
         "POST",
-        Github.access_token_endpoint(),
+        Auth.access_token_endpoint(),
         fn conn_ -> Plug.Conn.resp(conn_, 404, "") end
       )
 

@@ -1,46 +1,28 @@
 defmodule PrZero.GithubTest do
   use ExUnit.Case
   alias PrZero.Github
-  alias PrZero.Github.Auth
 
-  @mock_access_token "MOCK_ACCESS_TOKEN_1234567"
+  def get_token do
+    {:ok,
+     token:
+       :pr_zero
+       |> Application.get_env(:personal_access_tokens)
+       |> Keyword.fetch!(:test_pat_notifications)}
+  end
 
-  describe "auth" do
+  describe "Github.get/2 - requests to api.github.com" do
     setup do
-      bypass = Bypass.open()
-      TestHelpers.set_github_host(bypass)
-      {:ok, bypass: bypass}
+      get_token()
     end
 
-    test "get_access_token/1 calls Github and returns an access token", %{bypass: bypass} do
-      TestHelpers.bypass_access_token_success(bypass, %{
-        code: "CODE_FROM_GITHUB",
-        access_token: @mock_access_token
-      })
-
-      assert {:ok, %Auth{token: @mock_access_token}} =
-               Github.get_access_token(code: "CODE_FROM_GITHUB", cookie: "COOKIE")
+    test "returns {:ok, body}", %{token: token} do
+      assert {:ok, %{"name" => _}} = Github.get(%URI{path: "/user"}, %{token: token})
     end
 
-    test "get_access_token/1 returns error tuple if verification code is denied",
-         %{bypass: bypass} do
-      TestHelpers.bypass_access_token_bad_code(bypass)
-
-      assert Github.get_access_token(code: "BAD_CODE", cookie: "COOKIE") ==
-               {:error, {:bad_verification_code, "BAD_CODE"}}
-    end
-
-    test "get_access_token/1 returns error tuple if service is down", %{bypass: bypass} do
-      Bypass.down(bypass)
-
-      assert Github.get_access_token(code: "CODE_FROM_GITHUB", cookie: "COOKIE") ==
-               {:error, %HTTPoison.Error{reason: :econnrefused}}
-
-      Bypass.up(bypass)
-    end
-
-    test "base_uri/0 returns the base_uri", %{bypass: %Bypass{port: port}} do
-      assert Github.base_uri() == %URI{scheme: "http", host: "localhost", port: port}
+    test "returns {:error, %HTTPoison.Response{}} when token is invalid" do
+      assert {:error,
+              %HTTPoison.Response{status_code: 401, body: "{\"message\":\"Bad credentials\"" <> _}} =
+               Github.get(%URI{path: "/user"}, %{token: "BAD_TOKEN"})
     end
   end
 end
