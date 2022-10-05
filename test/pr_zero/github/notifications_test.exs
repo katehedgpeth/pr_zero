@@ -5,7 +5,7 @@ defmodule PrZero.Github.NotificationsTest do
     User,
     Notifications,
     Notification,
-    Organization,
+    Owner,
     Repo,
     Notification.Subject
   }
@@ -96,7 +96,7 @@ defmodule PrZero.Github.NotificationsTest do
              |> Enum.all?(&is_url?/1)
     end
 
-    defp validate_repo_owner(%Organization{
+    defp validate_repo_owner(%Owner{
            avatar_url: "https://" <> _,
            events_url: "https://" <> _,
            followers_url: "https://" <> _,

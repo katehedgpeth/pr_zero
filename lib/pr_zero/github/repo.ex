@@ -1,5 +1,5 @@
 defmodule PrZero.Github.Repo do
-  alias PrZero.Github.Organization
+  alias PrZero.Github.Owner
 
   defstruct [
     :description,
@@ -22,7 +22,7 @@ defmodule PrZero.Github.Repo do
       is_private?: Map.fetch!(api_response, "private"),
       name: Map.fetch!(api_response, "name"),
       node_id: Map.fetch!(api_response, "node_id"),
-      owner: api_response |> Map.fetch!("owner") |> Organization.new(),
+      owner: api_response |> Map.fetch!("owner") |> Owner.new(),
       urls: __MODULE__.Urls.new(api_response)
     }
   end

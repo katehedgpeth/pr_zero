@@ -164,7 +164,7 @@ defmodule TestHelpers do
   def get_test_token() do
     :pr_zero
     |> Application.get_env(:personal_access_tokens)
-    |> Keyword.fetch!(:test_pat_notifications)
+    |> Keyword.fetch!(:test_pat_full_permissions)
   end
 
   defp respond(%Conn{} = conn, status, %{} = payload) when is_integer(status) do

@@ -1,4 +1,4 @@
-defmodule PrZero.Github.Organization do
+defmodule PrZero.Github.Owner do
   defstruct [
     :avatar_url,
     :events_url,

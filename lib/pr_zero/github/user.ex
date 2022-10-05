@@ -1,6 +1,8 @@
 defmodule PrZero.Github.User do
   alias PrZero.Github
 
+  alias Github.Event
+
   @type t() :: %__MODULE__{
           id: String.t(),
           name: String.t(),
@@ -21,6 +23,17 @@ defmodule PrZero.Github.User do
     %URI{path: @users_endpoint}
     |> Github.get(%{token: token})
     |> parse_get_response(token)
+  end
+
+  def get_received_events(%__MODULE__{urls: %{received_events: url}} = user,
+        page: page,
+        per_page: limit
+      ) do
+    url
+    |> URI.parse()
+    |> URI.merge(%URI{query: URI.encode_query(page: page, per_page: limit)})
+    |> Github.get(user)
+    |> parse_received_events_response()
   end
 
   defp parse_get_response(
@@ -50,4 +63,10 @@ defmodule PrZero.Github.User do
   end
 
   defp parse_get_response(error, _token), do: error
+
+  defp parse_received_events_response({:ok, raw_events}) when is_list(raw_events) do
+    {:ok, Enum.map(raw_events, &Event.new/1)}
+  end
+
+  defp parse_received_events_response({:error, error}), do: {:error, error}
 end
