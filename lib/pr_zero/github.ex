@@ -41,6 +41,8 @@ defmodule PrZero.Github do
   def post(%URI{} = endpoint, "" <> body), do: post(endpoint, body, %{})
 
   def post(%URI{} = endpoint, "" <> body, %{} = header_map) do
+    IO.inspect(body, label: "POST BODY")
+
     endpoint
     |> build_url()
     |> HTTPoison.post(body, headers(header_map))
@@ -51,6 +53,7 @@ defmodule PrZero.Github do
     base_uri()
     |> URI.merge(uri)
     |> URI.to_string()
+    |> IO.inspect(label: "CALLING GITHUB AT:")
   end
 
   defp headers(%{token: _} = headers) do

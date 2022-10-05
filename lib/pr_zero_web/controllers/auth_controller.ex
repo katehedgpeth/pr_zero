@@ -8,7 +8,7 @@ defmodule PrZeroWeb.AuthController do
   alias PrZero.Github.Auth
   alias PrZeroWeb.ConnHelpers
 
-  action_fallback PrZeroWeb.FallbackController
+  # action_fallback PrZeroWeb.FallbackController
 
   def index(conn, %{}) do
     redirect(conn,
@@ -32,8 +32,13 @@ defmodule PrZeroWeb.AuthController do
     end
   end
 
-  def create(%Conn{} = conn, _) do
-    redirect(conn, to: Routes.auth_path(conn, :index))
+  def create(%Conn{} = conn, %{"code" => code}) do
+    render_error(conn, %{message: "State not received", status: :server_error})
+    # do_create(conn, %{code: code})
+  end
+
+  def create(%Conn{} = conn, %{}) do
+    render_error(conn, %{message: "Code not received", status: :bad_gateway})
   end
 
   def delete(conn, %{"id" => _}) do
@@ -72,7 +77,7 @@ defmodule PrZeroWeb.AuthController do
       {:ok, %Auth{token: token}} ->
         conn
         |> assign(:token, token)
-        |> redirect(to: Routes.page_path(conn, :index, token: token))
+        |> redirect(to: Routes.dashboard_path(conn, :index, token: token))
 
       {:error, {:bad_verification_code, _}} ->
         render_error(conn, cannot_authenticate_response(:forbidden))

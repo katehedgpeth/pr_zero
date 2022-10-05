@@ -25,8 +25,11 @@ defmodule PrZero.Github.Auth do
           {:error, HTTPoison.Error.t()} | {:ok, Auth.t()}
   def get_access_token(code: code, cookie: cookie) do
     base_auth_uri()
-    |> URI.merge(%URI{path: @access_token_endpoint})
-    |> Github.post(build_access_token_body(code: code), %{cookie: cookie})
+    |> URI.merge(%URI{
+      path: @access_token_endpoint,
+      query: build_access_token_query(code: code)
+    })
+    |> Github.post("", %{cookie: cookie})
     |> parse_token_response(code)
   end
 
@@ -36,7 +39,7 @@ defmodule PrZero.Github.Auth do
     |> do_oauthorize_url()
   end
 
-  def do_oauthorize_url({:ok, {csrf, conn}}) do
+  def do_oauthorize_url({:ok, {csrf, %Conn{} = conn}}) do
     base_auth_uri()
     |> URI.merge(%URI{
       path: "/login/oauth/authorize",
@@ -53,7 +56,7 @@ defmodule PrZero.Github.Auth do
     do_encode_oauth_query(%{}, csrf)
   end
 
-  defp do_encode_oauth_query(opts, csrf) do
+  defp do_encode_oauth_query(opts, "" <> csrf) do
     %{
       client_id: Github.client_id(),
       scope: "notifications",
@@ -63,14 +66,14 @@ defmodule PrZero.Github.Auth do
     |> URI.encode_query()
   end
 
-  @spec build_access_token_body([{:code, String.t()}]) :: String.t()
-  defp build_access_token_body(code: code),
+  @spec build_access_token_query([{:code, String.t()}]) :: String.t()
+  defp build_access_token_query(code: code),
     do:
       Github.env()
       |> Keyword.take([:client_id, :client_secret])
       |> Keyword.merge(code: code)
       |> Enum.into(%{})
-      |> Jason.encode!()
+      |> URI.encode_query()
 
   @spec parse_token_response(
           {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()},

@@ -20,6 +20,7 @@ defmodule PrZeroWeb.Router do
     get "/", PageController, :index
     get "/auth", AuthController, :index
     get "/auth/authorized", AuthController, :create
+    get "/dashboard", DashboardController, :index
   end
 
   # Other scopes may use custom stacks.
@@ -40,7 +41,7 @@ defmodule PrZeroWeb.Router do
     scope "/" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: PrZeroWeb.Telemetry
+      live_dashboard "/liveview_dashboard", metrics: PrZeroWeb.Telemetry
     end
   end
 
