@@ -60,7 +60,7 @@ defmodule PrZeroWeb.AuthControllerTest do
 
       assert headers
              |> TestHelpers.get_redirect_uri()
-             |> URI.to_string() == Routes.page_path(conn, :index, token: access_token)
+             |> URI.to_string() == Routes.dashboard_path(conn, :index, token: access_token)
     end
 
     test "shows an error if access token request gets denied", %{conn: conn, bypass: bypass} do
@@ -72,12 +72,9 @@ defmodule PrZeroWeb.AuthControllerTest do
       assert body =~ "Unable to authenticate with GitHub"
     end
 
-    test "redirects to auth index if code param is missing", %{conn: conn} do
-      assert %{status: 302, resp_headers: headers} = get(conn, Routes.auth_path(conn, :create))
-
-      assert headers
-             |> TestHelpers.get_redirect_uri()
-             |> URI.to_string() == Routes.auth_path(conn, :index)
+    test "returns a :bad_gateway error if code param is missing", %{conn: conn} do
+      assert %{status: 502, resp_body: body} = get(conn, Routes.auth_path(conn, :create))
+      assert body =~ "Code not received"
     end
 
     test "returns :service_unavailable error if Github is not responding", %{

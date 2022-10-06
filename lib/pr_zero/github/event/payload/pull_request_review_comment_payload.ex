@@ -1,4 +1,3 @@
 defmodule PrZero.Github.Event.PullRequestReviewCommentPayload do
-  alias PrZero.Github.Event.Payload
-  use Payload, keys: [:action, :comment, :pull_request]
+  use PrZero.Github.ResponseParser, keys: [:action, :comment, :pull_request]
 end

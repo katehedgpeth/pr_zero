@@ -1,5 +1,5 @@
 defmodule PrZero.GithubTest do
-  use ExUnit.Case
+  use PrZero.GithubCase
   alias PrZero.Github
 
   def get_token do
@@ -15,10 +15,12 @@ defmodule PrZero.GithubTest do
       get_token()
     end
 
+    @tag :external
     test "returns {:ok, body}", %{token: token} do
       assert {:ok, %{"name" => _}} = Github.get(%URI{path: "/user"}, %{token: token})
     end
 
+    @tag :external
     test "returns {:error, %HTTPoison.Response{}} when token is invalid" do
       assert {:error,
               %HTTPoison.Response{status_code: 401, body: "{\"message\":\"Bad credentials\"" <> _}} =

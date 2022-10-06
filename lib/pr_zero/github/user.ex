@@ -3,21 +3,67 @@ defmodule PrZero.Github.User do
 
   alias Github.Event
 
+  use Github.ResponseParser,
+    keys: [
+      :avatar_url,
+      :email,
+      :following,
+      :following_url,
+      :gravatar_id,
+      :html_url,
+      :id,
+      :is_site_admin?,
+      :login,
+      :name,
+      :node_id,
+      :organizations_url,
+      :received_events_url,
+      :token,
+      :two_factor_authentication,
+      :type,
+      :url
+    ],
+    skip_keys: [
+      :bio,
+      :blog,
+      :company,
+      :collaborators,
+      :created_at,
+      :disk_usage,
+      :events_url,
+      :followers,
+      :followers_url,
+      :gists_url,
+      :hireable,
+      :location,
+      :owned_private_repos,
+      :plan,
+      :total_private_repos,
+      :twitter_username,
+      :private_gists,
+      :public_gists,
+      :public_repos,
+      :repos_url,
+      :starred_url,
+      :subscriptions_url,
+      :updated_at
+    ]
+
   @type t() :: %__MODULE__{
+          email: String.t(),
           id: String.t(),
-          name: String.t(),
-          token: String.t(),
-          urls: __MODULE__.Urls.t()
+          login: String.t() | nil,
+          name: String.t() | nil,
+          token: String.t() | nil,
+          following_url: String.t(),
+          organizations_url: String.t(),
+          two_factor_authentication: boolean(),
+          received_events_url: String.t()
         }
 
-  defstruct [
-    :id,
-    :name,
-    :token,
-    urls: %__MODULE__.Urls{}
-  ]
-
   @users_endpoint "/user"
+
+  def endpoint(), do: @users_endpoint
 
   def get(token: token) do
     %URI{path: @users_endpoint}
@@ -25,7 +71,7 @@ defmodule PrZero.Github.User do
     |> parse_get_response(token)
   end
 
-  def get_received_events(%__MODULE__{urls: %{received_events: url}} = user,
+  def get_received_events(%__MODULE__{received_events_url: url} = user,
         page: page,
         per_page: limit
       ) do
@@ -36,30 +82,10 @@ defmodule PrZero.Github.User do
     |> parse_received_events_response()
   end
 
-  defp parse_get_response(
-         {:ok,
-          %{
-            "id" => id,
-            "name" => name,
-            "events_url" => events_url,
-            "organizations_url" => orgs_url,
-            "received_events_url" => received_events_url,
-            "following_url" => following_url
-          }},
-         token
-       ) do
-    {:ok,
-     %__MODULE__{
-       id: id,
-       name: name,
-       token: token,
-       urls: %__MODULE__.Urls{
-         orgs: orgs_url,
-         events: events_url,
-         following: following_url,
-         received_events: received_events_url
-       }
-     }}
+  @spec parse_get_response(Github.parsed_response(), String.t()) ::
+          {:ok, t()} | Github.error_response()
+  defp parse_get_response({:ok, params}, token) do
+    {:ok, params |> new() |> Map.put(:token, token)}
   end
 
   defp parse_get_response(error, _token), do: error

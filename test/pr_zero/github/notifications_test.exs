@@ -1,21 +1,9 @@
 defmodule PrZero.Github.NotificationsTest do
-  use ExUnit.Case
-
-  alias PrZero.Github.{
-    User,
-    Notifications,
-    Notification,
-    Owner,
-    Repo,
-    Notification.Subject
-  }
+  use PrZero.GithubCase
+  alias Notification.Subject
 
   describe "Notifications.get/1" do
-    setup do
-      TestHelpers.set_github_host(:github)
-      {:ok, token: TestHelpers.get_test_token()}
-    end
-
+    @tag :external
     test "returns a list of notifications", %{token: token} do
       {:ok, user} = User.get(token: token)
       assert {:ok, notifications} = Notifications.get(user)
@@ -30,7 +18,7 @@ defmodule PrZero.Github.NotificationsTest do
            repo: repo,
            subject: subject,
            subscription_url: subscription_url,
-           unread?: unread?,
+           is_unread?: is_unread?,
            updated_at: updated_at,
            url: url
          }) do
@@ -40,7 +28,7 @@ defmodule PrZero.Github.NotificationsTest do
 
       assert is_url?({:subscription_url, subscription_url})
 
-      assert is_boolean(unread?)
+      assert is_boolean(is_unread?)
       assert %NaiveDateTime{} = updated_at
       assert is_url?({:url, url})
 
@@ -51,8 +39,9 @@ defmodule PrZero.Github.NotificationsTest do
     defp validate_last_read_at(nil), do: true
     defp validate_last_read_at(%NaiveDateTime{}), do: true
 
-    defp validate_reason(:subscribed), do: true
-    defp validate_reason(:comment), do: true
+    defp validate_reason(reason)
+         when reason in [:subscribed, :comment, :review_requested, :mention],
+         do: true
 
     defp validate_subject(%Subject{
            latest_comment_url: latest_comment_url,
@@ -76,7 +65,7 @@ defmodule PrZero.Github.NotificationsTest do
              name: "" <> _ = name,
              node_id: "" <> _,
              owner: owner,
-             urls: urls
+             url: url
            } = repo
          )
          when is_integer(id) and is_boolean(is_fork?) and is_boolean(is_private?) do
@@ -84,17 +73,11 @@ defmodule PrZero.Github.NotificationsTest do
       validate_repo_owner(owner)
 
       validate_repo_description(repo)
-      validate_repo_urls(urls)
+      assert is_url?({:url, url})
     end
 
     defp validate_repo_description(%Repo{description: nil}), do: true
     defp validate_repo_description(%Repo{description: "" <> _}), do: true
-
-    defp validate_repo_urls(%Repo.Urls{} = urls) do
-      assert urls
-             |> Map.from_struct()
-             |> Enum.all?(&is_url?/1)
-    end
 
     defp validate_repo_owner(%Owner{
            avatar_url: "https://" <> _,
@@ -117,11 +100,11 @@ defmodule PrZero.Github.NotificationsTest do
            url: "https://" <> _
          })
          when is_integer(id) do
-      validate_organization_type(type)
+      validate_owner_type(type)
       true
     end
 
-    defp validate_organization_type(:org), do: true
+    defp validate_owner_type(:organization), do: true
 
     defp is_url?({key, "https://api.github.com/" <> _}) when is_atom(key), do: true
     defp is_url?({key, "https://github.com/" <> _}) when is_atom(key), do: true

@@ -1,29 +1,55 @@
 defmodule PrZero.Github.Repo do
-  alias PrZero.Github.Owner
+  require Logger
 
-  defstruct [
-    :description,
-    :full_name,
-    :id,
-    :is_fork?,
-    :is_private?,
-    :name,
-    :node_id,
-    :owner,
-    :urls
-  ]
+  use PrZero.Github.ResponseParser,
+    keys: [
+      :description,
+      :events_url,
+      :full_name,
+      :html_url,
+      :id,
+      :is_fork?,
+      :is_private?,
+      :name,
+      :node_id,
+      :open_issues,
+      :owner,
+      :pulls_url,
+      :pushed_at,
+      :url,
+      :visibility
+    ],
+    skip_keys: [
+      :allow_forking,
+      :archived,
+      :created_at,
+      :default_branch,
+      :disabled,
+      :forks,
+      :forks_count,
+      :is_template,
+      :has_downloads,
+      :has_issues,
+      :has_pages,
+      :has_projects,
+      :has_wiki,
+      :homepage,
+      :language,
+      :license,
+      :open_issues_count,
+      :permissions,
+      :size,
+      :stargazers_count,
+      :topics,
+      :updated_at,
+      :watchers,
+      :watchers_count,
+      :web_commit_signoff_required
+    ]
 
-  def new(%{} = api_response) do
-    %__MODULE__{
-      description: Map.fetch!(api_response, "description"),
-      full_name: Map.fetch!(api_response, "full_name"),
-      id: Map.fetch!(api_response, "id"),
-      is_fork?: Map.fetch!(api_response, "fork"),
-      is_private?: Map.fetch!(api_response, "private"),
-      name: Map.fetch!(api_response, "name"),
-      node_id: Map.fetch!(api_response, "node_id"),
-      owner: api_response |> Map.fetch!("owner") |> Owner.new(),
-      urls: __MODULE__.Urls.new(api_response)
-    }
+  def skip_key?({key, _}) when key in ["events_url", "html_url", "pulls_url"], do: false
+
+  def skip_key?({key, val}) do
+    super({key, val}) or String.ends_with?(key, "_url")
   end
 end

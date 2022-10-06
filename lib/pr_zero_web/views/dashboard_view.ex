@@ -9,9 +9,9 @@ defmodule PrZeroWeb.DashboardView do
   def render_notification(%Notification{
         subject: %Notification.Subject{title: title, url: subject_url},
         updated_at: last_updated,
-        unread?: is_unread?,
+        is_unread?: is_unread?,
         reason: reason,
-        repo: %Repo{full_name: repo, urls: %{url: repo_url}}
+        repo: %Repo{full_name: repo, url: repo_url}
       }) do
     url = String.replace(subject_url, "api.github", "github")
 

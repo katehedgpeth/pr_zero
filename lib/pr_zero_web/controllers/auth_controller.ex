@@ -32,9 +32,8 @@ defmodule PrZeroWeb.AuthController do
     end
   end
 
-  def create(%Conn{} = conn, %{"code" => code}) do
+  def create(%Conn{} = conn, %{"code" => "" <> _code}) do
     render_error(conn, %{message: "State not received", status: :server_error})
-    # do_create(conn, %{code: code})
   end
 
   def create(%Conn{} = conn, %{}) do
@@ -42,7 +41,10 @@ defmodule PrZeroWeb.AuthController do
   end
 
   def delete(conn, %{"id" => _}) do
-    render_error(conn, %{status: :not_implemented, message: "Not Implemented"})
+    render_error(
+      conn,
+      %{status: :not_implemented, message: "Not Implemented"}
+    )
   end
 
   defp verify_csrf(conn, csrf) do

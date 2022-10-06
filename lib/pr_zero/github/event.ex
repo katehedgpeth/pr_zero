@@ -8,8 +8,6 @@ defmodule PrZero.Github.Event do
     PushPayload
   }
 
-  defstruct [:id, :type, :actor, :payload, :is_public?, :created_at]
-
   @event_types [
     {:create, "CreateEvent", CreatePayload},
     {:delete, "DeleteEvent", DeletePayload},
@@ -20,28 +18,20 @@ defmodule PrZero.Github.Event do
     {:push, "PushEvent", PushPayload}
   ]
 
-  for {event_atom, event_string, payload_module} <- @event_types do
-    defp event_type(unquote(event_string)), do: unquote(event_atom)
+  use PrZero.Github.ResponseParser,
+    keys: [
+      :id,
+      :actor,
+      :created_at,
+      :is_public?,
+      :org,
+      :payload,
+      :repo,
+      :type
+    ]
 
-    defp parse_payload(%__MODULE__{type: unquote(event_atom)} = event, payload),
-      do: %{event | payload: unquote(payload_module).new(payload)}
-  end
-
-  def new(%{
-        "id" => id,
-        "type" => type,
-        "actor" => actor,
-        "payload" => payload,
-        "public" => is_public?,
-        "created_at" => created_at
-      }) do
-    %__MODULE__{
-      id: id,
-      type: event_type(type),
-      actor: actor,
-      is_public?: is_public?,
-      created_at: NaiveDateTime.from_iso8601!(created_at)
-    }
-    |> parse_payload(payload)
+  for {event_atom, payload_module} <- @event_types do
+    def post_new(%__MODULE__{type: unquote(event_atom), payload: raw_payload} = event),
+      do: %{event | payload: unquote(payload_module).new(raw_payload)}
   end
 end

@@ -47,7 +47,8 @@ config :phoenix, :json_library, Jason
 
 config :pr_zero, PrZero.Github,
   base_api_url: "https://api.github.com",
-  base_auth_url: "https://github.com"
+  base_auth_url: "https://github.com",
+  log_api_calls?: false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

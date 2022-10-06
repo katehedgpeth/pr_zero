@@ -1,16 +1,9 @@
 defmodule PrZero.AuthTest do
-  use ExUnit.Case
-  alias PrZero.Github.Auth
+  use PrZero.GithubCase
 
   @mock_access_token "MOCK_ACCESS_TOKEN_1234567"
 
   describe "Github.Auth" do
-    setup do
-      bypass = Bypass.open()
-      TestHelpers.set_github_host(bypass, :base_auth_url)
-      {:ok, bypass: bypass}
-    end
-
     test "get_access_token/1 calls Github and returns an access token", %{bypass: bypass} do
       TestHelpers.bypass_access_token_success(bypass, %{
         code: "CODE_FROM_GITHUB",

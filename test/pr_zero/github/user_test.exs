@@ -1,45 +1,22 @@
 defmodule PrZero.Github.UserTest do
-  use ExUnit.Case
-  alias PrZero.Github
-
-  alias PrZero.Github.{
-    Event,
-    User
-  }
-
-  alias User.Urls
-
-  defp setup do
-    TestHelpers.set_github_host(:github)
-
-    {:ok, token: TestHelpers.get_test_token()}
-  end
+  use PrZero.GithubCase
 
   describe "Github.User.get/1" do
-    setup do
-      setup()
-    end
-
-    @tag :skip
-    test "returns a %User{}", %{token: token} do
+    @tag :external
+    test "returns a %User{} with a token", %{token: token} do
       assert %{host: "api.github.com"} = Github.base_uri()
 
       assert {:ok,
               %User{
                 id: id,
                 name: "" <> _,
-                urls: %Urls{
-                  events: "" <> _,
-                  following: "" <> _,
-                  orgs: "" <> _,
-                  received_events: "" <> _
-                }
+                token: ^token
               }} = User.get(token: token)
 
       assert is_number(id)
     end
 
-    @tag :skip
+    @tag :external
     test "returns an error if token is bad", %{} do
       assert {:error,
               %HTTPoison.Response{status_code: 401, body: "{\"message\":\"Bad credentials\"" <> _}} =
@@ -48,12 +25,19 @@ defmodule PrZero.Github.UserTest do
   end
 
   describe "Github.User.get_received_events/1" do
-    setup do
-      setup()
-    end
+    defp validate_event_type(type)
+         when type in [
+                :create,
+                :issue_comment,
+                :delete,
+                :push,
+                :pull_request_review_comment,
+                :pull_request
+              ],
+         do: true
 
-    defp validate_received_event(%Event{type: :create} = event) do
-      IO.inspect(event)
+    defp validate_received_event(%Event{} = event) do
+      validate_event_type(event.type)
     end
 
     defp validate_received_events([page_num | next_page_nums], %User{} = user) do
@@ -71,6 +55,7 @@ defmodule PrZero.Github.UserTest do
       end
     end
 
+    @tag :external
     test "returns a list of all events", %{token: token} do
       assert {:ok, user} = User.get(token: token)
 

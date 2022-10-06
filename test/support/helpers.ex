@@ -1,6 +1,7 @@
 defmodule TestHelpers do
-  alias PrZero.Github
+  use PrZero.Github.Aliases
   alias Plug.Conn
+  import TestHelpers.Guards, only: [has_token?: 2]
 
   @spec set_github_host(Bypass.t() | URI.t() | :github) :: :ok
   def set_github_host(config), do: set_github_host(config, :base_api_url)
@@ -146,19 +147,27 @@ defmodule TestHelpers do
       bypass,
       "POST",
       Github.Auth.access_token_endpoint(),
-      fn %Conn{body_params: %Conn.Unfetched{}} = conn ->
-        {:ok, body, conn} = Conn.read_body(conn)
+      fn
+        %Conn{params: %{"code" => ^code}} = conn ->
+          respond(conn, 200, %{access_token: access_token})
 
-        body
-        |> Jason.decode()
-        |> case do
-          {:ok, %{"code" => ^code}} -> respond(conn, 200, %{access_token: access_token})
-          {:ok, %{"code" => _}} -> respond(conn, 200, %{error: "bad_verification_code"})
-          {:ok, _} -> respond(conn, 404, %{})
-          {:error, %Jason.DecodeError{}} -> {:error, {:bad_body, body}}
-        end
+        %Conn{params: %{"code" => _}} = conn ->
+          respond(conn, 200, %{error: "bad_verification_code"})
+
+        %Conn{params: params} ->
+          raise "unexpected params: #{params}"
       end
     )
+  end
+
+  def bypass_user(%Bypass{} = bypass, "" <> token) do
+    Bypass.expect(bypass, "GET", User.endpoint(), fn
+      %Conn{req_headers: headers} = conn when has_token?(headers, "Bearer " <> token) ->
+        respond(conn, 200, %{id: "1"})
+
+      %Conn{} = conn ->
+        respond(conn, 403, %{message: "invalid token"})
+    end)
   end
 
   def get_test_token() do
