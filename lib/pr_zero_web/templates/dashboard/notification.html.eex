@@ -1,4 +1,0 @@
-Title: <%= @notification.subject.title %>
-Repo: <%= @notification.repo.full_name %>
-Reason: <%= @notification.reason %>
-Unread?: <%= @notification.unread? %>

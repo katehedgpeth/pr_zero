@@ -1,3 +1,0 @@
-<div>Token: <%= @token %> </div>
-<div>Notification count: <%= length(@notifications) %>
-<%= Enum.map(@notifications, &render_notification(&1)) %>

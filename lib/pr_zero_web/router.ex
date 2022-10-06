@@ -20,7 +20,11 @@ defmodule PrZeroWeb.Router do
     get "/", PageController, :index
     get "/auth", AuthController, :index
     get "/auth/authorized", AuthController, :create
-    get "/dashboard", DashboardController, :index
+  end
+
+  scope "/dashboard", PrZeroWeb do
+    get "/", ReactAppController, :index
+    get "/*path", ReactAppController, :index
   end
 
   # Other scopes may use custom stacks.

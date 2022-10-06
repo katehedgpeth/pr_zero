@@ -79,7 +79,7 @@ defmodule PrZeroWeb.AuthController do
       {:ok, %Auth{token: token}} ->
         conn
         |> assign(:token, token)
-        |> redirect(to: Routes.dashboard_path(conn, :index, token: token))
+        |> redirect(to: Routes.react_app_path(conn, :index, token: token))
 
       {:error, {:bad_verification_code, _}} ->
         render_error(conn, cannot_authenticate_response(:forbidden))
