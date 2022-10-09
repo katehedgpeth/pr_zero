@@ -60,7 +60,7 @@ defmodule PrZeroWeb.AuthControllerTest do
 
       assert headers
              |> TestHelpers.get_redirect_uri()
-             |> URI.to_string() == Routes.dashboard_path(conn, :index, token: access_token)
+             |> URI.to_string() == Routes.react_app_path(conn, :index, token: access_token)
     end
 
     test "shows an error if access token request gets denied", %{conn: conn, bypass: bypass} do

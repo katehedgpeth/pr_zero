@@ -1,3 +1,9 @@
+<h2>Use a Personal Access Token</h2>
+<%= form_for @conn, Routes.react_app_path(@conn, :index), [], fn f -> %>
+  <%= text_input f, :token %>
+  <%= submit "Use a Personal Access Token" %>
+<% end %>
+
 <section class="phx-hero">
   <h1><%= gettext "Welcome to %{name}!", name: "Phoenix" %></h1>
   <p>Peace of mind from prototype to production</p>

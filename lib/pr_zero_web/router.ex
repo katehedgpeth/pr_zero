@@ -11,7 +11,14 @@ defmodule PrZeroWeb.Router do
   end
 
   pipeline :api do
+    if Mix.env() in [:dev, :test] do
+      plug CORSPlug
+    end
+
     plug :accepts, ["json"]
+    plug :fetch_session
+    plug PrZeroWeb.Plugs.Token
+    plug PrZeroWeb.Plugs.User
   end
 
   scope "/", PrZeroWeb do
@@ -20,11 +27,14 @@ defmodule PrZeroWeb.Router do
     get "/", PageController, :index
     get "/auth", AuthController, :index
     get "/auth/authorized", AuthController, :create
+    get "/dashboard", ReactAppController, :index
+    post "/dashboard", ReactAppController, :index
   end
 
-  scope "/dashboard", PrZeroWeb do
-    get "/", ReactAppController, :index
-    get "/*path", ReactAppController, :index
+  scope "/api", PrZeroWeb do
+    pipe_through :api
+    get "/notifications", NotificationsController, :index
+    options "/*path", PageController, :options
   end
 
   # Other scopes may use custom stacks.

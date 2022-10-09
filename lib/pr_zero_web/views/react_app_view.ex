@@ -1,3 +1,3 @@
-defmodule PrZeroWeb.DashboardView do
+defmodule PrZeroWeb.ReactAppView do
   use PrZeroWeb, :view
 end

@@ -36,7 +36,11 @@ defmodule PrZero.Github.ResponseParser do
       "Bot" => :bot,
 
       # owner types
-      "Organization" => :organization
+      "Organization" => :organization,
+
+      # notification subject types
+      "PullRequest" => :pull_request,
+      "Release" => :release
     },
     state: [:open],
     subject: &Notification.Subject.new/1,
@@ -57,8 +61,17 @@ defmodule PrZero.Github.ResponseParser do
       |> MapSet.new()
       |> Macro.escape()
 
+    encoder =
+      args
+      |> Keyword.get(:encoded_keys)
+      |> case do
+        [] -> Jason.Encoder
+        encoded_keys -> {Jason.Encoder, only: encoded_keys}
+      end
+
     quote do
       @behaviour unquote(__MODULE__)
+      @derive unquote(encoder)
       use PrZero.Github.Aliases
 
       import unquote(__MODULE__), only: [parse_datetime: 1]

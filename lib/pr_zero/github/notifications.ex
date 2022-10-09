@@ -4,6 +4,10 @@ defmodule PrZero.Github.Notifications do
   alias Github.User
 
   @endpoint "/notifications"
+  def get({:ok, %User{} = user}) do
+    get(user)
+  end
+
   def get(%User{token: token}) do
     %URI{path: @endpoint}
     |> Github.get(%{token: token})

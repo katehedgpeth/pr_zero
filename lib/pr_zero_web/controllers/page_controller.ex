@@ -4,4 +4,8 @@ defmodule PrZeroWeb.PageController do
   def index(conn, _params) do
     render(conn, "index.html")
   end
+
+  def options(conn, _params) do
+    conn
+  end
 end
