@@ -1,5 +1,5 @@
 import React, { FC } from "react";
-import { Notification as INotification } from "../hooks/useNotifications";
+import INotification from "../types/Notification";
 
 const Row: FC<{ k: string; v: { title?: string } }> = ({ k, v }) => (
   <div>
