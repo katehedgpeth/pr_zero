@@ -1,7 +1,13 @@
 import React, { FC, useRef } from "react";
+import styled from "styled-components";
 import useParams from "../../hooks/useParams";
 import useNotifications from "../../hooks/useNotifications";
-import Notification from "../Notification";
+import Notification from "../Notification/Notification";
+
+const StyledDashboard = styled.div`
+  margin: 0 30px;
+  max-width: 100%;
+`;
 
 const Dashboard: FC = () => {
   const ref = useRef(null);
@@ -12,11 +18,11 @@ const Dashboard: FC = () => {
     return <div ref={ref}>{notifications.error.toString()}</div>;
   if (notifications.data)
     return (
-      <div ref={ref}>
+      <StyledDashboard ref={ref}>
         {notifications.data.map((notification) => (
           <Notification key={notification.id} {...notification} />
         ))}
-      </div>
+      </StyledDashboard>
     );
 
   return <div>something went wrong</div>;

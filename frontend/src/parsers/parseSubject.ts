@@ -10,7 +10,7 @@ export const SAMPLE_RAW_SUBJECT: RawSubject = {
 
 const KEYS = Object.keys(SAMPLE_RAW_SUBJECT) as Array<keyof Subject>;
 
-const TYPES: Subject["type"][] = ["pull_request"];
+const TYPES: Subject["type"][] = ["pull_request", "issue", "release"];
 
 const typeIsSubjectType = (type: string): type is SubjectType =>
   TYPES.includes(type as Subject["type"]);
