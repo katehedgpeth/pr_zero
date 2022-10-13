@@ -13,8 +13,12 @@ defmodule PrZero.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: PrZero.PubSub},
       # Start the Endpoint (http/https)
-      PrZeroWeb.Endpoint
+      PrZeroWeb.Endpoint,
       # Start a worker by calling: PrZero.Worker.start_link(arg)
+      {PrZero.State.Users, name: PrZero.State.Users},
+      {DynamicSupervisor, name: PrZero.State.Supervisors.Notifications},
+      {DynamicSupervisor, name: PrZero.State.Supervisors.Repos},
+      {DynamicSupervisor, name: PrZero.State.Supervisors.PullRequests}
       # {PrZero.Worker, arg}
     ]
 
