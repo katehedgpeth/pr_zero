@@ -1,7 +1,35 @@
 defmodule PrZero.Github.Repos do
   use PrZero.Github.Aliases
 
-  def all(%User{} = user) do
+  @mock_file_name_string "repos"
+
+  def mock_file_name("" <> org) do
+    [@mock_file_name_string, org]
+    |> Enum.join("_")
+    |> String.to_atom()
+  end
+
+  def mock_file_path() do
+    @mock_file_name_string
+    |> Github.mock_file_path()
+  end
+
+  def mock_file_path("" <> org) do
+    org
+    |> mock_file_name()
+    |> Atom.to_string()
+    |> Github.mock_file_path()
+  end
+
+  def get("" <> token) do
+    get(%User{token: token})
+  end
+
+  def get({:ok, %User{} = user}) do
+    get(user)
+  end
+
+  def get(%User{} = user) do
     user
     |> Orgs.all()
     |> case do
@@ -19,10 +47,11 @@ defmodule PrZero.Github.Repos do
     end
   end
 
-  def do_get_org_repos(%Org{repos_url: repos_url}, %User{} = user) do
-    repos_url
-    |> URI.parse()
-    |> Github.get(user)
+  def do_get_org_repos(%Org{repos_url: repos_url, login: name}, %User{} = user) do
+    %URI{path: path} = URI.parse(repos_url)
+
+    %URI{path: path}
+    |> Github.get(user, mock_file_name(name))
     |> parse_response()
   end
 

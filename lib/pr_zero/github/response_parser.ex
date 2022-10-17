@@ -10,6 +10,8 @@ defmodule PrZero.Github.ResponseParser do
     author_association: %{
       "CONTRIBUTOR" => :contributor,
       "COLLABORATOR" => :collaborator,
+      "FIRST_TIME_CONTRIBUTOR" => :first_time_contributor,
+      "MEMBER" => :member,
       "NONE" => :none
     },
     org: &Org.new/1,

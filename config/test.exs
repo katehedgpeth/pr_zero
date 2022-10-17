@@ -11,7 +11,7 @@ config :pr_zero, PrZeroWeb.Endpoint,
 config :pr_zero, PrZero.Mailer, adapter: Swoosh.Adapters.Test
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :info
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

@@ -183,4 +183,14 @@ defmodule TestHelpers do
       Jason.encode!(payload)
     )
   end
+
+  def setup_to_record_mock(path) do
+    Application.put_env(:pr_zero, :write_mock_file?, true)
+    File.rm(path)
+  end
+
+  def teardown_after_record_mock(path) do
+    Application.delete_env(:pr_zero, :write_mock_file?)
+    File.exists?(path)
+  end
 end

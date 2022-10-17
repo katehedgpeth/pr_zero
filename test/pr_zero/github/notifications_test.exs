@@ -3,12 +3,26 @@ defmodule PrZero.Github.NotificationsTest do
   alias Notification.Subject
 
   describe "Notifications.get/1" do
-    @tag :external
+    @tag mock: [User, Notifications]
     test "returns a list of notifications", %{token: token} do
       {:ok, user} = User.get(token: token)
       assert {:ok, notifications} = Notifications.get(user)
       assert length(notifications) == 50
       Enum.each(notifications, &validate_notification/1)
+    end
+
+    @tag :skip
+    @tag mock: false
+    test "record response for mocks", %{user: user} do
+      path = Notifications.mock_file_path()
+      path |> File.rm()
+      refute path |> File.exists?()
+
+      Application.put_env(:pr_zero, :write_mock_file?, true)
+      assert {:ok, _} = Notifications.get(user)
+      Application.delete_env(:pr_zero, :write_mock_file?)
+
+      assert path |> File.exists?()
     end
 
     defp validate_notification(%Notification{

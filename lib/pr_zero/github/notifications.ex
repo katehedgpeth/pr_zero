@@ -4,14 +4,28 @@ defmodule PrZero.Github.Notifications do
   alias Github.User
 
   @endpoint "/notifications"
-  def get({:ok, %User{} = user}) do
-    get(user)
+  @mock_file_name :notifications
+
+  def endpoint(), do: @endpoint
+
+  def get({:ok, %User{token: token}}) do
+    get(token)
   end
 
   def get(%User{token: token}) do
+    get(token)
+  end
+
+  def get("" <> token) do
     %URI{path: @endpoint}
-    |> Github.get(%{token: token})
+    |> Github.get(%{token: token}, @mock_file_name)
     |> parse_response()
+  end
+
+  def mock_file_path() do
+    @mock_file_name
+    |> Atom.to_string()
+    |> Github.mock_file_path()
   end
 
   defp parse_response({:ok, notifications}) when is_list(notifications),

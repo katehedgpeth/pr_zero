@@ -7,10 +7,19 @@ defmodule PrZero.Github.Orgs do
   }
 
   @endpoint "/user/orgs"
+  @mock_file_name :orgs
+
+  def endpoint(_ \\ nil), do: @endpoint
+
+  def mock_file_path() do
+    @mock_file_name
+    |> Atom.to_string()
+    |> Github.mock_file_path()
+  end
 
   def all(%User{token: token}) do
     %URI{path: @endpoint}
-    |> Github.get(%{token: token})
+    |> Github.get(%{token: token}, @mock_file_name)
     |> parse_response()
   end
 

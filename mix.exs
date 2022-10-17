@@ -48,7 +48,8 @@ defmodule PrZero.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:bypass, "~> 2.1.0"},
       {:httpoison, "~> 1.8.2"},
-      {:cors_plug, "~> 3.0"}
+      {:cors_plug, "~> 3.0"},
+      {:timex, "~> 3.7.9"}
     ]
   end
 

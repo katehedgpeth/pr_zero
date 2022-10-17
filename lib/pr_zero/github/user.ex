@@ -1,8 +1,6 @@
 defmodule PrZero.Github.User do
   alias PrZero.Github
 
-  alias Github.Event
-
   use Github.ResponseParser,
     keys: [
       :avatar_url,
@@ -62,25 +60,32 @@ defmodule PrZero.Github.User do
         }
 
   @users_endpoint "/user"
+  @mock_file_name :user
+
+  def mock_file_path() do
+    @mock_file_name
+    |> Atom.to_string()
+    |> Github.mock_file_path()
+  end
 
   def endpoint(), do: @users_endpoint
 
   def get(token: token) do
     %URI{path: @users_endpoint}
-    |> Github.get(%{token: token})
+    |> Github.get(%{token: token}, @mock_file_name)
     |> parse_get_response(token)
   end
 
-  def get_received_events(%__MODULE__{received_events_url: url} = user,
-        page: page,
-        per_page: limit
-      ) do
-    url
-    |> URI.parse()
-    |> URI.merge(%URI{query: URI.encode_query(page: page, per_page: limit)})
-    |> Github.get(user)
-    |> parse_received_events_response()
-  end
+  # def get_received_events(%__MODULE__{received_events_url: url} = user,
+  #       page: page,
+  #       per_page: limit
+  #     ) do
+  #   url
+  #   |> URI.parse()
+  #   |> URI.merge(%URI{query: URI.encode_query(page: page, per_page: limit)})
+  #   |> Github.get(user)
+  #   |> parse_received_events_response()
+  # end
 
   @spec parse_get_response(Github.parsed_response(), String.t()) ::
           {:ok, t()} | Github.error_response()
@@ -90,9 +95,9 @@ defmodule PrZero.Github.User do
 
   defp parse_get_response(error, _token), do: error
 
-  defp parse_received_events_response({:ok, raw_events}) when is_list(raw_events) do
-    {:ok, Enum.map(raw_events, &Event.new/1)}
-  end
+  # defp parse_received_events_response({:ok, raw_events}) when is_list(raw_events) do
+  #   {:ok, Enum.map(raw_events, &Event.new/1)}
+  # end
 
-  defp parse_received_events_response({:error, error}), do: {:error, error}
+  # defp parse_received_events_response({:error, error}), do: {:error, error}
 end

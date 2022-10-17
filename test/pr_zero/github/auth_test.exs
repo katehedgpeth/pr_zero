@@ -4,6 +4,7 @@ defmodule PrZero.AuthTest do
   @mock_access_token "MOCK_ACCESS_TOKEN_1234567"
 
   describe "Github.Auth" do
+    @tag mock: [User]
     test "get_access_token/1 calls Github and returns an access token", %{bypass: bypass} do
       TestHelpers.bypass_access_token_success(bypass, %{
         code: "CODE_FROM_GITHUB",
@@ -14,6 +15,7 @@ defmodule PrZero.AuthTest do
                Auth.get_access_token(code: "CODE_FROM_GITHUB", cookie: "COOKIE")
     end
 
+    @tag mock: [User]
     test "get_access_token/1 returns error tuple if verification code is denied",
          %{bypass: bypass} do
       TestHelpers.bypass_access_token_bad_code(bypass)
@@ -22,6 +24,7 @@ defmodule PrZero.AuthTest do
                {:error, {:bad_verification_code, "BAD_CODE"}}
     end
 
+    @tag mock: [User]
     test "get_access_token/1 returns error tuple if service is down", %{bypass: bypass} do
       Bypass.down(bypass)
 
@@ -31,6 +34,7 @@ defmodule PrZero.AuthTest do
       Bypass.up(bypass)
     end
 
+    @tag mock: [User]
     test "base_uri/0 returns the base_uri", %{bypass: %Bypass{port: port}} do
       assert Auth.base_auth_uri() == %URI{
                scheme: "http",
