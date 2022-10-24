@@ -13,6 +13,12 @@ defmodule PrZero.GithubCase do
   use ExUnit.CaseTemplate
   use PrZero.Github.Aliases
 
+  @overrideable_methods mock_file_path: 2,
+                        set_mock: 1,
+                        bypass_endpoint: 2,
+                        get_endpoint: 2,
+                        get_endpoint_response: 2
+
   using _opts do
     quote do
       require Logger
@@ -104,14 +110,14 @@ defmodule PrZero.GithubCase do
         opts
         |> put_in([:tags, :mock], [endpoint | rest])
         |> put_in([:tags, :endpoint_path], path)
-        |> Map.put(:response, get_endpoint_response(endpoint, path, opts.tags))
+        |> Map.put(:response, get_endpoint_response(endpoint, opts.tags))
         |> do_set_mock()
       end
 
       def set_mock(%{tags: %{mock: [endpoint | rest]} = tags, bypass: %Bypass{} = bypass} = opts)
           when is_atom(endpoint) do
         opts
-        |> Map.put(:response, get_endpoint_response(endpoint, nil, opts.tags))
+        |> Map.put(:response, get_endpoint_response(endpoint, opts.tags))
         |> do_set_mock()
       end
 
@@ -129,8 +135,8 @@ defmodule PrZero.GithubCase do
         |> set_mock()
       end
 
-      @spec get_endpoint_response(atom(), String.t() | nil, Map.t()) :: String.t()
-      def get_endpoint_response(endpoint, _, %{} = tags) do
+      @spec get_endpoint_response(atom(), Map.t()) :: String.t()
+      def get_endpoint_response(endpoint, %{} = tags) when is_atom(endpoint) do
         endpoint
         |> mock_file_path(tags)
         |> File.read!()
@@ -167,11 +173,7 @@ defmodule PrZero.GithubCase do
         Application.put_env(:pr_zero, PrZero.Github, updated)
       end
 
-      defoverridable mock_file_path: 2,
-                     set_mock: 1,
-                     bypass_endpoint: 2,
-                     get_endpoint: 2,
-                     get_endpoint_response: 3
+      defoverridable unquote(@overrideable_methods)
     end
   end
 end

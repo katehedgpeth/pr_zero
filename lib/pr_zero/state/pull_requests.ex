@@ -5,16 +5,20 @@ defmodule PrZero.State.PullRequests do
     key: :pull_requests,
     github_endpoint: PrZero.Github.Pulls
 
+  @impl true
   def fetch(%{token: token, repos_pid: repos_pid}, state) do
-    case GenServer.call(repos_pid, {:all, token}) do
+    case GenServer.call(repos_pid, :all) do
       [_ | _] = repos ->
-        new_state = Enum.reduce(repos, state, &fetch_for_repo(&1, &2, token))
-        {:noreply, new_state}
+        Map.update!(state, :data, &fetch_for_repos(&1, repos, token))
 
       {:error, %{}} ->
         Logger.warn("error=repos_not_available token=#{token}")
-        {:noreply, state}
+        state
     end
+  end
+
+  defp fetch_for_repos(%{} = state, [%Github.Repo{} | _] = repos, "" <> token) do
+    Enum.reduce(repos, state, &fetch_for_repo(&1, &2, token))
   end
 
   defp fetch_for_repo(

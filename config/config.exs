@@ -6,6 +6,7 @@
 
 # General application configuration
 import Config
+alias PrZero.State.{Notifications, PullRequests}
 
 # Configures the endpoint
 config :pr_zero, PrZeroWeb.Endpoint,
@@ -49,6 +50,11 @@ config :pr_zero, PrZero.Github,
   base_api_url: "https://api.github.com",
   base_auth_url: "https://github.com",
   log_api_calls?: false
+
+config :pr_zero, :fetch_intervals, [
+  {PullRequests, [seconds: 30]},
+  {Notifications, [seconds: 10]}
+]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

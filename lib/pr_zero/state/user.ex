@@ -1,20 +1,28 @@
 defmodule PrZero.State.User do
+  alias PrZero.Github
   alias PrZero.State.{Supervisors, Notifications, Repos, PullRequests}
 
   @type t() :: %__MODULE__{
+          user_data: Github.User.t(),
           notifications: pid(),
           repos: pid(),
           pull_requests: pid()
         }
 
-  defstruct [:notifications, :repos, :pull_requests]
+  defstruct [:notifications, :repos, :pull_requests, :user_data]
 
-  def new("" <> token) do
-    {:ok, notifications} = start_notifications(token)
-    {:ok, repos} = start_repos(token)
-    {:ok, pull_requests} = start_pull_requests(token, repos)
+  def new(%Github.User{} = user) do
+    {:ok, notifications} = start_notifications(user.token)
+    {:ok, repos} = start_repos(user.token)
+    {:ok, pull_requests} = start_pull_requests(user.token, repos)
 
-    {:ok, %__MODULE__{notifications: notifications, repos: repos, pull_requests: pull_requests}}
+    {:ok,
+     %__MODULE__{
+       notifications: notifications,
+       repos: repos,
+       pull_requests: pull_requests,
+       user_data: user
+     }}
   end
 
   def start_notifications("" <> token),

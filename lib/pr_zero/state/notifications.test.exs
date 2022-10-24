@@ -7,49 +7,64 @@ defmodule PrZero.State.NotificationsTest do
                   |> Path.relative_to_cwd()
                   |> Path.expand()
 
-  @mock_data @mock_file_path |> File.read!()
-
-  # def mock_notifications_response(%Conn{req_headers: headers} = conn, token) do
-  #   case Enum.into(headers, %{}) do
-  #     %{"authorization" => "Bearer " <> ^token} ->
-  #       conn
-  #       |> Conn.resp(200, @mock_data)
-
-  #     header_map ->
-  #       Conn.resp(
-  #         conn,
-  #         :forbidden,
-  #         Jason.encode!(%{error: :invalid_token, headers: header_map})
-  #       )
-  #   end
-  # end
-
   describe "PrZero.State.Notifications.fetch/2" do
-    # setup %{test: test} do
-    #   bypass = Bypass.open()
-    #   TestHelpers.set_github_host(bypass)
-    #   token = Atom.to_string(test)
-    #   Bypass.expect_once(bypass, &mock_notifications_response(&1, token))
-    #   {:ok, token: token}
-    # end
-
     @tag mock: [User, Notifications]
     test "fetches notifications and adds them to state", %{token: token} do
-      assert {:noreply, notifications} = State.Notifications.fetch(%{token: token}, %{})
-      assert length(notifications) == 1
+      assert State.Notifications.get_interval() == [seconds: 10]
+
+      state = %State.Server{}
+      assert %DateTime{} = state.next_fetch
+
+      assert %State.Server{data: notifications, next_fetch: next_fetch} =
+               State.Notifications.fetch(%{token: token}, state)
+
+      assert [%Github.Notification{} | _] = Map.values(notifications)
+
+      assert %DateTime{} = next_fetch
+      assert DateTime.diff(next_fetch, state.next_fetch, :second) == 10
+    end
+  end
+
+  describe "PrZero.State.Notifications.handle_cast({:fetch, opts}, state)" do
+    test "does not fetch if next_fetch time is in the future", tags do
+      state = %State.Server{
+        next_fetch: Timex.now() |> Timex.shift(seconds: 10),
+        subscribers: [self()]
+      }
+
+      assert State.Notifications.handle_cast({:fetch, tags}, state) == {:noreply, state}
+      refute_received {:updated_data, _}
+      assert_received {:"$gen_cast", {:fetch, ^tags}}
+    end
+
+    @tag mock: [User, Notifications]
+    test "does fetch if next_fetch time is in the past", tags do
+      state = %State.Server{
+        next_fetch: Timex.now() |> Timex.shift(seconds: -1),
+        subscribers: [self()]
+      }
+
+      assert {:noreply, %State.Server{data: data}} =
+               State.Notifications.handle_cast({:fetch, tags}, state)
+
+      assert [%Github.Notification{} | _] = Map.values(data)
+
+      assert_received {:updated_data, list}
+      assert is_list(list)
+      assert Map.values(data) == list
+      assert_received {:"$gen_cast", {:fetch, ^tags}}
     end
   end
 
   @tag :skip
   test "write mock data file" do
-    assert {:noreply, notifications} =
-             State.Notifications.fetch(%{token: TestHelpers.get_test_token()}, %{})
+    assert TestHelpers.setup_to_record_mock(@mock_file_path) == :ok
 
-    assert {:ok, json} =
-             notifications
-             |> Map.values()
-             |> Jason.encode()
+    assert %State.Server{data: notifications} =
+             State.Notifications.fetch(%{token: TestHelpers.get_test_token()}, %State.Server{})
 
-    assert File.write(@mock_file_path, json)
+    assert [%Github.Notification{} | _] = Map.values(notifications)
+
+    assert TestHelpers.teardown_after_record_mock(@mock_file_path) == true
   end
 end

@@ -1,18 +1,21 @@
 defmodule PrZero.State.Notifications do
   alias PrZero.Github.{Notification, Notification.Subject}
+  alias PrZero.State.Server
 
-  use PrZero.State.Server,
+  use Server,
     key: :notifications,
     github_endpoint: Github.Notifications
 
-  def fetch(%{token: token, repo_pid: pid}, state) do
-    {:noreply, updated_state} = super(%{token: token, repo_pid: pid}, state)
+  @impl true
+  def fetch(%{token: token}, %Server{} = state) do
+    updated_state = super(%{token: token}, state)
 
     updated_state
+    |> Map.fetch!(:data)
     |> Map.values()
     |> Enum.map(&fetch_repo_if_not_exists(&1, token))
 
-    {:noreply, updated_state}
+    updated_state
   end
 
   defp fetch_repo_if_not_exists(

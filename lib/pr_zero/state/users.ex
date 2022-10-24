@@ -1,5 +1,6 @@
 defmodule PrZero.State.Users do
   use Agent
+  alias PrZero.Github
   alias PrZero.State.User
 
   @spec get(String.t()) :: {:ok, User.t()} | :error
@@ -7,10 +8,13 @@ defmodule PrZero.State.Users do
     Agent.get(name, Map, :fetch, [github_token])
   end
 
-  def create("" <> github_token, name \\ __MODULE__) do
-    github_token
+  def create(user, name \\ __MODULE__)
+  def create({:ok, %Github.User{} = user}, name), do: create(user, name)
+
+  def create(%Github.User{} = user, name) do
+    user
     |> User.new()
-    |> add_user(github_token, name)
+    |> add_user(name)
   end
 
   def remove("" <> github_token, name \\ __MODULE__) do
@@ -22,8 +26,8 @@ defmodule PrZero.State.Users do
     end
   end
 
-  def add_user({:ok, user}, github_token, name \\ __MODULE__) do
-    {Agent.update(name, Map, :put, [github_token, user]), user}
+  def add_user({:ok, %User{} = user}, name \\ __MODULE__) do
+    {Agent.update(name, Map, :put, [user.user_data.token, user]), user}
   end
 
   # API

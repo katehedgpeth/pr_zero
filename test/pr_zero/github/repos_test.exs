@@ -7,7 +7,7 @@ defmodule PrZero.Github.ReposTest do
     User
   }
 
-  def get_endpoint_response(Repos, path, %{mock: [{_, path}]}) do
+  def get_endpoint_response(Repos, %{mock: [{_, path}]}) do
     path
     |> String.split("/")
     |> Enum.at(2)
@@ -15,7 +15,7 @@ defmodule PrZero.Github.ReposTest do
     |> File.read!()
   end
 
-  def get_endpoint_response(endpoint, path, tags), do: super(endpoint, path, tags)
+  def get_endpoint_response(endpoint, tags), do: super(endpoint, tags)
 
   @tag mock: false
   @tag :skip
