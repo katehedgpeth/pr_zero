@@ -1,15 +1,23 @@
 defmodule PrZero.State.PullRequests do
-  alias PrZero.Github
+  alias PrZero.{Github, State}
 
-  use PrZero.State.Server,
+  use State.Server,
     key: :pull_requests,
-    github_endpoint: PrZero.Github.Pulls
+    github_endpoint: Github.Pulls
 
-  @impl true
-  def fetch(%{token: token, repos_pid: repos_pid}, state) do
+  @impl State.Server
+  def start_link([token: _, repos_pid: _] = opts) do
+    super(opts)
+  end
+
+  @impl State.Server
+  def fetch(
+        %{token: token, repos_pid: repos_pid},
+        %State.Server{} = state
+      ) do
     case GenServer.call(repos_pid, :all) do
       [_ | _] = repos ->
-        Map.update!(state, :data, &fetch_for_repos(&1, repos, token))
+        Map.put(state, :data, Map.update!(state, :data, &fetch_for_repos(&1, repos, token)))
 
       {:error, %{}} ->
         Logger.warn("error=repos_not_available token=#{token}")
@@ -17,25 +25,24 @@ defmodule PrZero.State.PullRequests do
     end
   end
 
-  defp fetch_for_repos(%{} = state, [%Github.Repo{} | _] = repos, "" <> token) do
-    Enum.reduce(repos, state, &fetch_for_repo(&1, &2, token))
+  defp fetch_for_repos(%{} = old_data, [%Github.Repo{} | _] = repos, "" <> token) do
+    Enum.reduce(repos, old_data, &fetch_for_repo(&1, &2, token))
   end
 
   defp fetch_for_repo(
-         %Github.Repo{owner: %Github.Owner{login: org_name}, name: repo_name},
-         %{} = state,
-         token
+         %Github.Repo{owner: %Github.Owner{login: "" <> org_name}, name: "" <> repo_name},
+         %{} = data,
+         "" <> token
        ) do
     {:ok, pulls} =
-      %Github.User{token: token}
-      |> Github.Pulls.get(%{
-        owner: org_name,
+      Github.Pulls.get(token, %{
+        org: org_name,
         repo: repo_name,
         page: 1,
         per_page: 100,
         state: nil
       })
 
-    Enum.reduce(pulls, state, &Map.put(&2, &1.id, &1))
+    Enum.reduce(pulls, data, &Map.put(&2, &1.id, &1))
   end
 end

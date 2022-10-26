@@ -1,7 +1,7 @@
 defmodule PrZeroWeb.Plugs.User do
   @behaviour Plug
   require Logger
-  alias PrZero.Github.User
+  alias PrZero.{Github, State}
   alias Plug.Conn
   import Conn
 
@@ -10,11 +10,14 @@ defmodule PrZeroWeb.Plugs.User do
   end
 
   def call(%Conn{assigns: %{github_token: token}} = conn, []) do
-    Logger.warn("token=#{token}")
-    assign(conn, :user, User.get(token: token))
-  end
+    case State.Users.get(token) do
+      :error ->
+        {:ok, user} = Github.User.get(token)
+        {:ok, %State.User{}} = State.Users.create(user)
+        assign(conn, :user, user)
 
-  # def call(conn, []) do
-  #   conn
-  # end
+      {:ok, %State.User{user_data: user}} ->
+        assign(conn, :user, user)
+    end
+  end
 end

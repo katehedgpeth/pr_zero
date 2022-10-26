@@ -9,15 +9,17 @@ defmodule PrZero.State.Server do
 
   @type id :: String.t()
   @type token :: String.t()
+  @type fetch_opts :: %{:token => String.t(), :repos_pid => pid}
 
   @callback add(Map.t(), String.t()) :: {:ok, t()} | {:error, {:already_exists, String.t()}}
   @callback subscribe(pid) :: :ok
   @callback subscribers(pid) :: list(pid)
   @callback all(String.t()) :: {:ok, list(struct)} | {:error, {:not_found, token}}
   @callback find(id, token) :: {:ok, struct} | :error
-  @callback fetch(Map.t(), t()) :: t()
+  @callback fetch(fetch_opts, t()) :: t()
   @callback notify_subscribers(t()) :: t()
   @callback get_interval() :: Timex.shift_options()
+  @callback start_link([{:token, String.t()} | {atom, any}]) :: GenServer.on_start()
 
   defmacro __using__(opts) do
     key = Keyword.fetch!(opts, :key)
@@ -33,7 +35,7 @@ defmodule PrZero.State.Server do
 
       @fetch_interval hours: 1
 
-      @overrideable fetch: 2
+      @overrideable fetch: 2, start_link: 1
 
       @impl Server
       def add(%{__struct__: _} = resource, "" <> github_token) do
@@ -70,18 +72,27 @@ defmodule PrZero.State.Server do
       def get_interval() do
         :pr_zero
         |> Application.get_env(:fetch_intervals)
-        |> Keyword.fetch!(__MODULE__)
+        |> Keyword.get(__MODULE__, hours: 1)
       end
 
-      def start_link(opts) do
+      @impl Server
+      def start_link([{:token, _} | _] = opts) do
         GenServer.start_link(__MODULE__, Enum.into(opts, %{}), [])
       end
 
-      defp call({:ok, pid}, body, _token) when is_pid(pid) do
-        {:ok, GenServer.call(pid, body)}
+      def call({:ok, pid}, body, _token) when is_pid(pid) do
+        case GenServer.call(pid, body) do
+          {:ok, %{} = response} -> {:ok, response}
+          {:ok, response} when is_list(response) -> {:ok, response}
+          {:error, error} -> error
+          :ok -> :ok
+          :error -> :error
+          %{} = response -> {:ok, response}
+          response when is_list(response) -> {:ok, response}
+        end
       end
 
-      defp call(:error, _body, token) do
+      def call(:error, _body, token) do
         {:error, {:not_found, token}}
       end
 
@@ -114,7 +125,7 @@ defmodule PrZero.State.Server do
 
       @impl GenServer
       def handle_call(:all, _from, state) do
-        {:reply, Map.values(state), state}
+        {:reply, Map.values(state.data), state}
       end
 
       def handle_call(:subscribe, {pid, _}, state) do
@@ -126,15 +137,20 @@ defmodule PrZero.State.Server do
       end
 
       def handle_call({:find, id}, _from, state) do
-        {:reply, Map.fetch(state, id), state}
+        response =
+          state
+          |> Map.fetch!(:data)
+          |> Map.fetch(id)
+
+        {:reply, response, state}
       end
 
       def handle_call({:add, %{id: id} = resource}, _from, state) do
-        if Map.get(state, id) do
+        if Map.get(state.data, id) do
           {:reply, {:error, {:already_exists, id}}, state}
         else
-          new_state = Map.put(state, id, resource)
-          {:reply, {:ok, state}, new_state}
+          state = put_in(state, [:data, id], resource)
+          {:reply, {:ok, state.data}, state}
         end
       end
 
@@ -166,7 +182,6 @@ defmodule PrZero.State.Server do
       ######################################################
       # OVERRIDEABLE FUNCTIONS
 
-      @spec fetch(Map.t(), Server.t()) :: Server.t()
       @impl Server
       def fetch(%{token: token}, %Server{} = state) do
         token
@@ -176,7 +191,7 @@ defmodule PrZero.State.Server do
       end
 
       @spec do_fetch({:ok, list(struct)} | {:error, any()}, Server.t()) :: Server.t()
-      defp do_fetch({:ok, new_data}, state) do
+      defp do_fetch({:ok, new_data}, state) when is_list(new_data) do
         Map.update!(state, :data, fn old_data ->
           Map.merge(
             old_data,

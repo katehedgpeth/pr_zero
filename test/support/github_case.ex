@@ -16,7 +16,6 @@ defmodule PrZero.GithubCase do
   @overrideable_methods mock_file_path: 2,
                         set_mock: 1,
                         bypass_endpoint: 2,
-                        get_endpoint: 2,
                         get_endpoint_response: 2
 
   using _opts do
@@ -26,18 +25,50 @@ defmodule PrZero.GithubCase do
       alias PrZero.GithubCase
       alias Plug.Conn
 
+      @orgs ["insurify", "kate-test-org"]
+
+      @repos %{
+        "insurify" => ["ensurify"],
+        "kate-test-org" => ["pr_zero"]
+      }
+
+      @all_mocks Enum.reduce(
+                   @orgs,
+                   [
+                     User,
+                     Notifications,
+                     Orgs
+                   ],
+                   fn org, acc1 ->
+                     @repos
+                     |> Map.fetch!(org)
+                     |> Enum.reduce(
+                       [
+                         {Repos, %{org: org}} | acc1
+                       ],
+                       fn repo, acc2 -> [{Pulls, %{org: org, repo: repo}} | acc2] end
+                     )
+                   end
+                 )
+
       setup tags do
         token = TestHelpers.get_test_token()
 
         bypass = set_github_host(tags)
         set_mocks(%{tags: tags, bypass: bypass, token: token})
         maybe_log_api_calls(tags, Github.env())
-        user = User.get(token: token)
+        user = User.get(token)
 
         {:ok, bypass: bypass, token: token, user: user}
       end
 
       defp set_mocks(%{tags: %{mock: false}}), do: :ok
+
+      defp set_mocks(%{tags: %{mock: :all}} = opts) do
+        opts
+        |> put_in([:tags, :mock], @all_mocks)
+        |> set_mocks()
+      end
 
       defp set_mocks(%{tags: %{mock: endpoint}} = opts) when is_atom(endpoint) do
         opts
@@ -52,11 +83,9 @@ defmodule PrZero.GithubCase do
       defp set_mocks(%{tags: %{}}), do: :ok
 
       def bypass_endpoint(%Conn{req_headers: headers, request_path: req_path} = conn, %{
-            tags: %{mock: [endpoint | _]},
             response: "" <> response,
             token: token
-          })
-          when is_atom(endpoint) do
+          }) do
         ratelimit_reset =
           "Etc/UTC"
           |> DateTime.now!()
@@ -101,32 +130,28 @@ defmodule PrZero.GithubCase do
         end
       end
 
-      def mock_file_path(endpoint, _opts) when is_atom(endpoint), do: endpoint.mock_file_path()
+      def mock_file_path(endpoint, %{} = opts) when is_atom(endpoint),
+        do: endpoint.mock_file_path(opts)
 
       def set_mock(%{tags: %{mock: []}}), do: :ok
-
-      def set_mock(%{tags: %{mock: [{endpoint, "" <> path} | rest]}} = opts)
-          when is_atom(endpoint) do
-        opts
-        |> put_in([:tags, :mock], [endpoint | rest])
-        |> put_in([:tags, :endpoint_path], path)
-        |> Map.put(:response, get_endpoint_response(endpoint, opts.tags))
-        |> do_set_mock()
-      end
 
       def set_mock(%{tags: %{mock: [endpoint | rest]} = tags, bypass: %Bypass{} = bypass} = opts)
           when is_atom(endpoint) do
         opts
-        |> Map.put(:response, get_endpoint_response(endpoint, opts.tags))
-        |> do_set_mock()
+        |> put_in([:tags, :mock], [{endpoint, %{}} | rest])
+        |> set_mock()
       end
 
-      defp do_set_mock(%{tags: %{mock: [endpoint | rest]} = tags, bypass: %Bypass{}} = opts)
-           when is_atom(endpoint) do
-        Bypass.expect(
+      def set_mock(
+            %{tags: %{mock: [{endpoint, endpoint_opts} | rest]} = tags, bypass: %Bypass{}} = opts
+          )
+          when is_atom(endpoint) do
+        opts = Map.put(opts, :response, get_endpoint_response(endpoint, endpoint_opts))
+
+        Bypass.stub(
           opts.bypass,
           "GET",
-          get_endpoint(endpoint, tags),
+          get_endpoint(tags),
           &bypass_endpoint(&1, opts)
         )
 
@@ -136,19 +161,18 @@ defmodule PrZero.GithubCase do
       end
 
       @spec get_endpoint_response(atom(), Map.t()) :: String.t()
-      def get_endpoint_response(endpoint, %{} = tags) when is_atom(endpoint) do
+      def get_endpoint_response(endpoint, %{} = opts) when is_atom(endpoint) do
         endpoint
-        |> mock_file_path(tags)
+        |> mock_file_path(opts)
         |> File.read!()
       end
 
-      def get_endpoint(endpoint, %{endpoint_path: path}), do: path
+      def get_endpoint(%{mock: [{endpoint, opts} | _]}), do: endpoint.endpoint(opts)
 
-      def get_endpoint(endpoint, tags) do
-        endpoint.endpoint()
-      end
+      def set_github_host(%{mock: [_ | _]}), do: set_github_host(%{mock: true})
+      def set_github_host(%{mock: :all}), do: set_github_host(%{mock: true})
 
-      def set_github_host(%{mock: [_ | _]}) do
+      def set_github_host(%{mock: true}) do
         bypass = Bypass.open()
         TestHelpers.set_github_host(bypass, :base_api_url)
         TestHelpers.set_github_host(bypass, :base_auth_url)

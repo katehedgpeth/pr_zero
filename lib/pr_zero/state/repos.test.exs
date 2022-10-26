@@ -31,7 +31,7 @@ defmodule PrZero.State.ReposTest do
       bypass = Bypass.open()
       TestHelpers.set_github_host(bypass)
       Bypass.expect_once(bypass, &mock_github_response(&1, token))
-      {:ok, pid} = DynamicSupervisor.start_child(Supervisors.Repos, {Repos, token: token})
+      {:ok, pid} = start_link_supervised!({Repos, token: token, repos_pid: nil})
       user = %User{repos: pid}
       {:ok, ^user} = Users.add_user({:ok, user}, token)
       {:ok, token: token, user: user}

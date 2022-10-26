@@ -1,6 +1,8 @@
 defmodule PrZero.Github.Repos do
   use PrZero.Github.Aliases
 
+  @behaviour Github.Endpoint
+
   @mock_file_name_string "repos"
 
   def mock_file_name("" <> org) do
@@ -9,29 +11,30 @@ defmodule PrZero.Github.Repos do
     |> String.to_atom()
   end
 
-  def mock_file_path() do
-    @mock_file_name_string
-    |> Github.mock_file_path()
-  end
-
-  def mock_file_path("" <> org) do
+  @impl Github.Endpoint
+  def mock_file_path(%{org: org}) do
     org
     |> mock_file_name()
     |> Atom.to_string()
     |> Github.mock_file_path()
   end
 
-  def get("" <> token) do
-    get(%User{token: token})
+  def mock_file_path(_) do
+    @mock_file_name_string
+    |> Github.mock_file_path()
   end
 
-  def get({:ok, %User{} = user}) do
-    get(user)
-  end
+  @impl Github.Endpoint
+  def endpoint(%{org: org}), do: "/orgs/#{org}/repos"
+
+  @impl Github.Endpoint
+  def get({:error, error}), do: {:error, error}
+  def get("" <> token), do: get(%User{token: token})
+  def get({:ok, %User{} = user}), do: get(user)
 
   def get(%User{} = user) do
     user
-    |> Orgs.all()
+    |> Orgs.get()
     |> case do
       {:ok, orgs} -> get_org_repos(orgs, {:ok, []}, user)
       {:error, error} -> {:error, error}

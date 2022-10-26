@@ -5,7 +5,7 @@ defmodule PrZero.Github.NotificationsTest do
   describe "Notifications.get/1" do
     @tag mock: [User, Notifications]
     test "returns a list of notifications", %{token: token} do
-      {:ok, user} = User.get(token: token)
+      {:ok, user} = User.get(token)
       assert {:ok, notifications} = Notifications.get(user)
       assert length(notifications) == 50
       Enum.each(notifications, &validate_notification/1)

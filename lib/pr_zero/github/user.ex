@@ -59,18 +59,23 @@ defmodule PrZero.Github.User do
           received_events_url: String.t()
         }
 
+  @behaviour Github.Endpoint
+
   @users_endpoint "/user"
   @mock_file_name :user
 
-  def mock_file_path() do
+  @impl Github.Endpoint
+  def mock_file_path(_ \\ nil) do
     @mock_file_name
     |> Atom.to_string()
     |> Github.mock_file_path()
   end
 
-  def endpoint(), do: @users_endpoint
+  @impl Github.Endpoint
+  def endpoint(_ \\ nil), do: @users_endpoint
 
-  def get(token: token) do
+  @impl Github.Endpoint
+  def get("" <> token) do
     %URI{path: @users_endpoint}
     |> Github.get(%{token: token}, @mock_file_name)
     |> parse_get_response(token)

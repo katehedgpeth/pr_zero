@@ -89,6 +89,7 @@ defmodule PrZero.Github.ResponseParser do
 
       defoverridable skip_key?: 1, post_new: 1
 
+      @spec new(Map.t()) :: %__MODULE__{}
       def new(%{} = payload) do
         payload
         |> Enum.reject(&skip_key?/1)

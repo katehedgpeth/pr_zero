@@ -8,7 +8,7 @@ defmodule PrZero.State.NotificationsTest do
                   |> Path.expand()
 
   describe "PrZero.State.Notifications.fetch/2" do
-    @tag mock: [User, Notifications]
+    @tag mock: :all
     test "fetches notifications and adds them to state", %{token: token} do
       assert State.Notifications.get_interval() == [seconds: 10]
 
@@ -37,7 +37,7 @@ defmodule PrZero.State.NotificationsTest do
       assert_received {:"$gen_cast", {:fetch, ^tags}}
     end
 
-    @tag mock: [User, Notifications]
+    @tag mock: :all
     test "does fetch if next_fetch time is in the past", tags do
       state = %State.Server{
         next_fetch: Timex.now() |> Timex.shift(seconds: -1),
@@ -53,6 +53,39 @@ defmodule PrZero.State.NotificationsTest do
       assert is_list(list)
       assert Map.values(data) == list
       assert_received {:"$gen_cast", {:fetch, ^tags}}
+    end
+  end
+
+  describe "PrZero.State.Notifications.find/2" do
+    @users_name :users_test
+    setup %{token: token} do
+      start_link_supervised!({State.Users, name: @users_name})
+
+      {:ok, user} =
+        token
+        |> PrZero.Github.User.get()
+        |> State.Users.create(@users_name)
+
+      {:ok, user: user}
+    end
+
+    @tag mock: :all
+    test "returns {:ok, %Notification{}} when notification is found", %{
+      token: token,
+      user: %State.User{notifications: pid}
+    } do
+      assert {:ok, [%Notification{} = notification | _]} =
+               State.Notifications.call({:ok, pid}, :all, token)
+
+      assert State.Notifications.call({:ok, pid}, {:find, notification.id}, token) ==
+               {:ok, notification}
+    end
+
+    test "returns :error when notification is not found", %{
+      token: token,
+      user: %State.User{notifications: pid}
+    } do
+      assert State.Notifications.call({:ok, pid}, {:find, "bad_id"}, token) == :error
     end
   end
 

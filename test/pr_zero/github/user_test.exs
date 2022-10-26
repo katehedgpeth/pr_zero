@@ -11,15 +11,14 @@ defmodule PrZero.Github.UserTest do
                 id: id,
                 name: "" <> _,
                 token: ^token
-              }} = User.get(token: token)
+              }} = User.get(token)
 
       assert is_number(id)
     end
 
     @tag mock: [User]
     test "returns an error if token is bad", %{} do
-      assert {:error, %HTTPoison.Response{status_code: 401, body: body}} =
-               User.get(token: "BAD_CODE")
+      assert {:error, %HTTPoison.Response{status_code: 401, body: body}} = User.get("BAD_CODE")
 
       assert {:ok, %{"message" => "Bad credentials"}} = Jason.decode(body)
     end
@@ -30,7 +29,7 @@ defmodule PrZero.Github.UserTest do
       path = User.mock_file_path()
 
       assert TestHelpers.setup_to_record_mock(path) == :ok
-      assert {:ok, _} = User.get(token: token)
+      assert {:ok, _} = User.get(token)
 
       assert TestHelpers.teardown_after_record_mock(path) == true
     end
