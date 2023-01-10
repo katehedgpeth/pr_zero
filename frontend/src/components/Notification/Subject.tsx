@@ -1,9 +1,11 @@
-import React, { FC } from "react";
+import React, { FC, MouseEvent } from "react";
 import { Subject as ISubject } from "../../types/Notification";
 import styled from "styled-components";
 import { COLORS } from "./Colors";
 
-type Props = Omit<ISubject, "type">;
+type Props = Omit<ISubject, "type" | "url"> & {
+  onClick(ev: MouseEvent): void;
+};
 
 const Styled = styled.div`
   font-size: 1.4em;
@@ -16,9 +18,9 @@ const Styled = styled.div`
   }
 `;
 
-const Subject: FC<Props> = ({ title, url }) => (
+const Subject: FC<Props> = ({ onClick, title }) => (
   <Styled>
-    <a href={url}>{title}</a>
+    <a onClick={onClick}>{title}</a>
   </Styled>
 );
 

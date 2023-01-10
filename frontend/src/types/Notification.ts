@@ -1,4 +1,3 @@
-import Notification from "../components/Notification/Notification";
 import Repo, { RawRepo } from "./Repo";
 
 export default interface Notification {

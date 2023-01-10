@@ -34,6 +34,7 @@ defmodule PrZeroWeb.Router do
   scope "/api", PrZeroWeb do
     pipe_through :api
     get "/notifications", NotificationsController, :index
+    get "/notifications/:id/thread", NotificationsController, :thread
     options "/*path", PageController, :options
   end
 

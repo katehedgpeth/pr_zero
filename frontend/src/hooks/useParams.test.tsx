@@ -42,7 +42,7 @@ describe("useParams", () => {
     const token = "TOKEN_1";
     const spy = vi.fn();
     Cookie.set(TOKEN_NAME, token);
-    const screen = setup({ spy });
+    setup({ spy });
     expect(spy).toHaveBeenCalledWith({ token, query: new URLSearchParams("") });
   });
   it("gets the token from query params if cookie isn't there", () => {
@@ -51,7 +51,7 @@ describe("useParams", () => {
     const spy = vi.fn();
     const searchParams = new URLSearchParams();
     searchParams.set(TOKEN_NAME, token);
-    const screen = setup({ spy }, searchParams.toString());
+    setup({ spy }, searchParams.toString());
     expect(spy).toHaveBeenCalledWith({ token, query: searchParams });
   });
 });
