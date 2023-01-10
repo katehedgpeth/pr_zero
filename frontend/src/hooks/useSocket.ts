@@ -33,7 +33,7 @@ const useSocket = (github_token: string) => {
       queryClient.setQueryData(["notifications", github_token], notifications);
     });
     channel.join();
-    return [];
+    return [] as Notification[];
   };
 
   return useQuery<Notification[]>(queryKey, getNotifications);
